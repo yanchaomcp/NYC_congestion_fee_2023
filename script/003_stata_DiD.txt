@@ -1,0 +1,204 @@
+///////////////////////////////////
+//  Travel Demand
+///////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
+// approach 1: compared to regions unaffected
+////////////////////////////////////////////////////////////////////////////////
+
+import delimited "/Users/yanchao/000_2022/NYU/research/TaxiFHV/data/clean/AffectedNonAffected.csv", clear
+
+// check data 	
+tab group post 
+tab group tmt
+
+// encode zones
+encode zones, generate(zones_n) 
+gen logtriptx = log(pun_trips_tx + 1)
+gen logtripub = log(pun_trips_ub + 1)
+gen logtriplf = log(pun_trips_lf + 1)
+gen logtrip = log(pun_trips_tx + pun_trips_ub + pun_trips_lf)
+
+gen lf_prop = pun_trips_lf/(pun_trips_lf+pun_trips_ub+pun_trips_tx)
+gen ub_prop = pun_trips_ub/(pun_trips_lf+pun_trips_ub+pun_trips_tx)
+gen tx_prop = pun_trips_tx/(pun_trips_lf+pun_trips_ub+pun_trips_tx)
+
+keep if (group == 20)|(group == 25)|(group==30)
+
+
+
+///////////////////////////
+// ride-hailing as a whole
+///////////////////////////
+reg logtrip t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut , vce(cluster locid)
+
+///////////////////////////
+// taxi, Uber and Lyft
+///////////////////////////
+reg logtriptx t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut lf_prop ub_prop, vce(cluster locid)
+reg logtripub t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut lf_prop tx_prop, vce(cluster locid)
+reg logtriplf t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut tx_prop ub_prop, vce(cluster locid)
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// approach 2:  compared to year prior
+////////////////////////////////////////////////////////////////////////////////
+
+///////////////////////////////////
+//  demand
+///////////////////////////////////
+import delimited "/Users/yanchao/000_2022/NYU/research/TaxiFHV/data/clean/TwoYears.csv", clear
+
+// browse data
+br
+
+// encode zones
+encode zones, generate(zones_n) 
+gen logtriptx = log(pun_trips_tx + 1)
+gen logtripub = log(pun_trips_ub + 1)
+gen logtriplf = log(pun_trips_lf + 1)
+keep if (group == 20)|(group == 25)|(group==30)
+
+///////////////////////////
+// ride-hailing as a whole
+///////////////////////////
+reg logtrip t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut , vce(cluster locid)
+
+///////////////////////////
+// taxi, Uber and Lyft
+///////////////////////////
+reg logtriptx t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut lf_prop ub_prop, vce(cluster locid)
+reg logtripub t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut lf_prop tx_prop, vce(cluster locid)
+reg logtriplf t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut tx_prop ub_prop, vce(cluster locid)
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// approach 2: effectiveness to different travel distance 
+////////////////////////////////////////////////////////////////////////////////
+// Set the travel distance cut as following categories to make sure each group has similar number of trips.
+// 0 - td <= 1 miles 
+// 1 - 1 < td <= 1.5 miles 
+// 2 - 1.5 < td <= 2.5 miles 
+// 3 - Td > 2.5 miles 
+
+import delimited "/Users/yanchao/000_2022/NYU/research/TaxiFHV/data/clean/TwoYearsDistance.csv", clear	
+
+// encode zones
+encode zones, generate(zones_n) 
+gen logd0 = log(dt_0 +1)
+gen logd1 = log(dt_1 +1)
+gen logd2 = log(dt_2 +1)
+gen logd3 = log(dt_3 +1)
+drop if (group == 50)|(group == 40)|(group == 35)
+		  
+
+reg  logd0  t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut , vce(cluster locid)
+reg  logd1  t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut , vce(cluster locid)
+reg  logd2  t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut , vce(cluster locid)
+reg  logd3  t_p i.tmt i.post i.group i.year i.month  i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut , vce(cluster locid)	
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// approach 2: effectiveness to different alternative substitutes 
+////////////////////////////////////////////////////////////////////////////////
+// substitutes category
+//     0- inapplicable
+//     1- only subway stations
+//     2- only city bikes
+//     3- both available
+
+import delimited "/Users/yanchao/000_2022/NYU/research/TaxiFHV/data/clean/TwoYearsSubstitutes.csv", clear
+
+encode zones, generate(zones_n) 
+drop if (group3 == 50)|(group3 == 40)|(group3 == 35)
+gen logt0 = log(tot_0 +1)
+gen logt1 = log(tot_1 +1)
+gen logt2 = log(tot_2 +1)
+gen logt3 = log(tot_3 +1)
+
+reg  logt0  t_p i.tmt i.post i.year i.month i.group i.tp_cut i.pp_cut i.pu_hour i.locid i.dow i.zones_n , vce(cluster locid)
+reg  logt1  t_p i.tmt i.post i.year i.month i.group i.tp_cut i.pp_cut i.pu_hour i.locid i.dow i.zones_n , vce(cluster locid)
+reg  logt2  t_p i.tmt i.post i.year i.month i.group i.tp_cut i.pp_cut i.pu_hour i.locid i.dow i.zones_n , vce(cluster locid)
+reg  logt3  t_p i.tmt i.post i.year i.month i.group i.tp_cut i.pp_cut i.pu_hour i.locid i.dow i.zones_n , vce(cluster locid)
+
+
+
+  
+////////////////////////////////////////////////////////////////////////////////
+// approach 2: robustness check
+////////////////////////////////////////////////////////////////////////////////
+
+import delimited "/Users/yanchao/000_2022/NYU/research/TaxiFHV/data/clean/TwoYearsFictitiousDate.csv", clear
+
+encode zones, generate(zones_n)
+gen pun_trips = pun_trips_tx + pun_trips_ub + pun_trips_lf
+gen logtrip = log(pun_trips +1) 
+
+reg logtrip t_p2 i.tmt_2 i.post_2 i.group i.locid  i.zones_n i.dow  i.year  i.month  i.group1  i.tp_cut i.pp_cut, vce (cluster locid)
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// approach 2: policy heterogeneity 
+////////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////
+//  temporal
+///////////////////////////////////////////
+import delimited "/Users/yanchao/000_2022/NYU/research/TaxiFHV/data/clean/twoYearsHourHetero.csv", clear
+
+// encode zones
+encode zones, generate(zones_n) 
+gen pun_trips = pun_trips_tx + pun_trips_ub + pun_trips_lf
+gen logtrip = log(pun_trips +1)
+
+///////////////////////////
+// ride-hailing as a whole
+///////////////////////////
+reg logtrip tph_* i.tmt i.post i.group i.locid  i.zones_n i.dow  i.year  i.month i.pu_hour#i.tmt  i.tp_cut i.pp_cut, vce (cluster pu_hour)
+
+
+///////////////////////////////////////////
+// spatial
+///////////////////////////////////////////
+import delimited "/Users/yanchao/000_2022/NYU/research/TaxiFHV/data/clean/TwoYearsSpatialHetero.csv", clear
+
+encode zones, generate(zones_n) 
+
+gen logtrip0 = log(tot_0 +1)
+gen logtrip1 = log(tot_1 +1)
+gen logtrip2 = log(tot_2 +1)
+gen logtrip3 = log(tot_3 +1)
+gen logtrip4 = log(tot_4 +1)
+
+reg  logtrip0  t_p i.tmt i.post i.year i.month i.group i.tp_cut i.pp_cut i.pu_hour i.locid i.dow i.zones_n , vce(cluster locid)
+reg  logtrip1  t_p i.tmt i.post i.year i.month i.group i.tp_cut i.pp_cut i.pu_hour i.locid i.dow i.zones_n , vce(cluster locid)
+reg  logtrip2  t_p i.tmt i.post i.year i.month i.group i.tp_cut i.pp_cut i.pu_hour i.locid i.dow i.zones_n , vce(cluster locid)
+reg  logtrip3  t_p i.tmt i.post i.year i.month i.group i.tp_cut i.pp_cut i.pu_hour i.locid i.dow i.zones_n , vce(cluster locid)
+reg  logtrip4  t_p i.tmt i.post i.year i.month i.group i.tp_cut i.pp_cut i.pu_hour i.locid i.dow i.zones_n , vce(cluster locid)
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+// approach 2: taxi revenue change
+////////////////////////////////////////////////////////////////////////////////
+
+import delimited "/Users/yanchao/000_2022/NYU/research/TaxiFHV/data/clean/TaxiRevenueTwoYears.csv", clear
+
+// check data
+tab group post	
+tab group tmt
+
+// encode zones
+encode zones, generate(zones_n) 
+gen logfare = log(fare_amount+1)
+
+reg logfare t_p i.tmt i.post i.group i.year i.month i.locid i.pu_hour i.dow i.zones_n i.tp_cut i.pp_cut, ub_prop, lf_prop, vce(cluster locid)
